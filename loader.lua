@@ -1,1 +1,1 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/incognitocoded/LostHub/main/Loader.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/incognitocoded/RIVALS/main/Loader.lua"))()
