@@ -1,7 +1,6 @@
 -- [[ RIVALS OFFICIAL LOADER ]] --
 -- TG: t.me/losthq
 
--- ВНИМАНИЕ: Проверь, что твой ник точно incognitocoded
 local raw_url = "https://raw.githubusercontent.com/incognitocoded/RIVALS/main/Main.lua"
 
 local success, result = pcall(function()
@@ -9,8 +8,9 @@ local success, result = pcall(function()
 end)
 
 if success then
+    -- Запуск зашифрованного Main.lua
     loadstring(result)()
 else
-    -- Если не работает, выведет ошибку в консоль (F9)
-    warn("RIVALS Loader Error: " .. tostring(result))
+    -- Ошибка выводится в консоль (F9)
+    warn("RIVALS Loader Error: " --[] .. tostring(result))
 end
