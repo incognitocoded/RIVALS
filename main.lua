@@ -1,174 +1,38 @@
-local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local Players = game:GetService("Players")
-local Lighting = game:GetService("Lighting")
-local TweenService = game:GetService("TweenService")
-local camera = workspace.CurrentCamera
-local lp = Players.LocalPlayer
+-- [[ LOSTHUB PROTECTED SOURCE ]] --
+-- Разработано командой LOSTHQ
 
--- [[ ЧИСТАЯ АНИМАЦИЯ LOSTHUB ]] --
-local function PlayCleanIntro()
-    local screenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
-    
-    -- Мягкое размытие
-    local blur = Instance.new("BlurEffect", Lighting)
-    blur.Size = 0
-    TweenService:Create(blur, TweenInfo.new(1.2, Enum.EasingStyle.Quint), {Size = 20}):Play()
-    
-    -- Текст LostHub
-    local text = Instance.new("TextLabel", screenGui)
-    text.Size = UDim2.new(1, 0, 1, 0)
-    text.BackgroundTransparency = 1
-    text.Text = "LostHub"
-    text.TextColor3 = Color3.fromRGB(255, 255, 255)
-    text.Font = Enum.Font.Unknown -- Современный тонкий шрифт
-    text.TextSize = 1
-    text.TextTransparency = 1
-
-    -- Анимация появления (как в твоем первом запросе на флай)
-    text.TextTransparency = 0
-    TweenService:Create(text, TweenInfo.new(1.5, Enum.EasingStyle.Quint), {TextSize = 80}):Play()
-    
-    task.wait(2)
-    
-    -- Плавный выход
-    TweenService:Create(blur, TweenInfo.new(1, Enum.EasingStyle.Quint), {Size = 0}):Play()
-    TweenService:Create(text, TweenInfo.new(1, Enum.EasingStyle.Quint), {TextTransparency = 1, TextSize = 110}):Play()
-    
-    task.wait(1)
-    blur:Destroy()
-    screenGui:Destroy()
+local function FakeLoading()
+    local total = 456
+    print("--------------------------------")
+    print("LOSTHUB | SYSTEM INITIALIZING...")
+    print("--------------------------------")
+    for i = 1, total, math.random(20, 45) do
+        if i > total then i = total end
+        print("Decrypting Data: " .. i .. "/" .. total)
+        task.wait(0.1) -- Скорость "загрузки"
+    end
+    print("Success! LostHub is ready.")
+    print("--------------------------------")
 end
 
-PlayCleanIntro()
+-- Запуск имитации загрузки в консоль
+FakeLoading()
 
--- [[ ЛОГИКА И НАСТРОЙКИ ]] --
-local Config = {
-    Aimbot = false,
-    WallCheck = false,
-    TargetPart = "Head",
-    FOV = 150,
-    ShowFOV = false,
-    Chams = false
-}
-
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Thickness = 1
-FOVCircle.Color = Color3.fromRGB(255, 255, 255)
-FOVCircle.Transparency = 0.8
-
-local function IsVisible(part)
-    if not Config.WallCheck then return true end
-    local params = RaycastParams.new()
-    params.FilterType = Enum.RaycastFilterType.Exclude
-    params.FilterDescendantsInstances = {lp.Character, camera}
-    local ray = workspace:Raycast(camera.CFrame.Position, (part.Position - camera.CFrame.Position).Unit * 1000, params)
-    return ray and ray.Instance:IsDescendantOf(part.Parent)
+-- Внутренняя функция дешифратора
+local function Decode(data)
+    local b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+    data = string.gsub(data, '[^'..b..'=]', '')
+    return (data:gsub('.', function(x)
+        if (x == '=') then return '' end
+        local r, f = '', (b:find(x) - 1)
+        for i = 6, 1, -1 do r = r .. (f % 2^i - f % 2^(i-1) > 0 and '1' or '0') end
+        return r;
+    end):gsub('%d%d%d%d%d%d%d%d', function(x)
+        local c = 0
+        for i = 1, 8 do c = c + (x:sub(i, i) == '1' and 2^(8 - i) or 0) end
+        return string.char(c)
+    end))
 end
 
-local function GetClosestTarget()
-    local closestDist = Config.FOV
-    local target = nil
-    local mouseLocation = UserInputService:GetMouseLocation()
-
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= lp and player.Character and player.Character:FindFirstChild(Config.TargetPart) then
-            local part = player.Character[Config.TargetPart]
-            local pos, onScreen = camera:WorldToViewportPoint(part.Position)
-            
-            if onScreen and IsVisible(part) then
-                local dist = (Vector2.new(mouseLocation.X, mouseLocation.Y) - Vector2.new(pos.X, pos.Y)).Magnitude
-                if dist < closestDist then
-                    closestDist = dist
-                    target = part
-                end
-            end
-        end
-    end
-    return target
-end
-
-RunService.RenderStepped:Connect(function()
-    local mouseLocation = UserInputService:GetMouseLocation()
-    FOVCircle.Visible = Config.ShowFOV
-    FOVCircle.Radius = Config.FOV
-    FOVCircle.Position = mouseLocation
-
-    if Config.Aimbot then
-        local target = GetClosestTarget()
-        if target then
-            camera.CFrame = CFrame.new(camera.CFrame.Position, target.Position)
-        end
-    end
-end)
-
-local function ApplyChams(player)
-    local function Update()
-        if player.Character then
-            local highlight = player.Character:FindFirstChild("LostHighlight") or Instance.new("Highlight", player.Character)
-            highlight.Name = "LostHighlight"
-            highlight.Enabled = Config.Chams
-            highlight.FillColor = Color3.fromRGB(255, 0, 0)
-            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-            highlight.FillTransparency = 0.5
-            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        end
-    end
-    player.CharacterAdded:Connect(Update)
-    Update()
-end
-
-for _, p in pairs(Players:GetPlayers()) do if p ~= lp then ApplyChams(p) end end
-Players.PlayerAdded:Connect(ApplyChams)
-
--- [[ ИНТЕРФЕЙС ]] --
-local Window = Fluent:CreateWindow({
-    Title = "LOST",
-    SubTitle = "Rivals Precision",
-    TabWidth = 160,
-    Size = UDim2.fromOffset(580, 460),
-    Acrylic = false,
-    Theme = "Dark"
-})
-
-local Tabs = {
-    Combat = Window:AddTab({ Title = "Combat", Icon = "crosshair" }),
-    Visuals = Window:AddTab({ Title = "Visuals", Icon = "eye" })
-}
-
-Tabs.Combat:AddToggle("Aim", {Title = "Активировать Аимбот", Default = false}):OnChanged(function()
-    Config.Aimbot = Fluent.Options.Aim.Value
-end)
-
-Tabs.Combat:AddToggle("WCheck", {Title = "Wall Check", Default = false}):OnChanged(function()
-    Config.WallCheck = Fluent.Options.WCheck.Value
-end)
-
-Tabs.Combat:AddDropdown("Part", {
-    Title = "Цель",
-    Values = {"Head", "HumanoidRootPart"},
-    Default = "Head",
-    Callback = function(v) Config.TargetPart = v end
-})
-
-Tabs.Combat:AddSlider("FOV", {
-    Title = "FOV Radius",
-    Default = 150, Min = 10, Max = 800, Rounding = 1,
-    Callback = function(v) Config.FOV = v end
-})
-
-Tabs.Combat:AddToggle("SFOV", {Title = "Показывать круг", Default = false}):OnChanged(function()
-    Config.ShowFOV = Fluent.Options.SFOV.Value
-end)
-
-Tabs.Visuals:AddToggle("Chams", {Title = "Силуэты (ВХ)", Default = false}):OnChanged(function()
-    Config.Chams = Fluent.Options.Chams.Value
-    for _, p in pairs(Players:GetPlayers()) do
-        if p.Character and p.Character:FindFirstChild("LostHighlight") then
-            p.Character.LostHighlight.Enabled = Config.Chams
-        end
-    end
-end)
-
-Window:SelectTab(1)
+-- Твой зашифрованный код (Base64)
+local EncryptedSource = "bG9jYWwgRmx1ZW50ID0gbG9hZHN0cmluZyhnYW1lOkh0dHBHZXQoImh0dHBzOi8vZ2l0aHViLmNvbS9kYXdpZC1zY3JpcHRzL0ZsdWVudC9yZWxlYXNlcy9sYXRlc3QvZG93bmxvYWQvbWFpbi5sdWEiKSkoKQpsb2NhbCBSdW5TZXJ2aWNlID0gZ2FtZTpHZXRTZXJ2aWNlKCJSdW5TZXJ2aWNlIikKbG9jYWwgVXNlcklucHV0U2VydmljZSA9IGdhbWU6R2V0U2VydmljZSgiVXNlcklucHV0U2VydmljZSIpCmxvY2FsIFBsYXllcnMgPSBnYW1lOkdldFNlcnZpY2UoIlBsYXllcnMiKQpsb2NhbCBMaWdodGluZyA9IGdhbWU6R2V0U2VydmljZSgiTGlnaHRpbmciKQpsb2NhbCBUd2VlblNlcnZpY2UgPSBnYW1lOkdldFNlcnZpY2UoIlR3ZWVuU2VydmljZSIpCmxvY2FsIGNhbWVyYSA9IHdvcmtzcGFjZS5DdXJyZW50Q2FtZXJhCmxvY2FsIGxwID0gUGxheWVycy5Mb2NhbFBsYXllcgoKLS0gW1sg0JDQndCY0JzQkNCm0JjQryBMT1NUSFVCIF1dCmxvY2FsIGZ1bmN0aW9uIFBsYXlDbGVhbkludHJvKCkKICAgIGxvY2FsIHNjcmVlbkd1iID0gSW5zdGFuY2UubmV3KCJTY3JlZW5HdWkiLCBnYW1lOkdldFNlcnZpY2UoIkNvcmVHdWkiKSkKICAgIGxvY2FsIGJsdXIgPSBJbnN0YW5jZS5uZXcoIkJsdXJFZmZlY3QiLCBMaWdodGluZykKICAgIGJsdXIuU2l6ZSA9IDAKICAgIFR3ZWVuU2VydmljZTpDcmVhdGUoYmx1ciwgVHdlZW5JbmZvLm5ldygxLjIsIEVudW0uRWFzaW5nU3R5bGUuUXVpbnQpLCB7U2l6ZSA9IDIwfSk6UGxheSgpCiAgICBsb2NhbCB0ZXh0ID0gSW5zdGFuY2UubmV3KCJUZXh0TGFiZWwiLCBzY3JlZW5HdWkpCiAgICB0ZXh0LlNpemUgPSBVRGltMi5uZXcoMSwgMCwgMSwgMCkKICAgIHRleHQuQmFja2dyb3VuZFRyYW5zcGFyZW5jeSA9IDEKICAgIHRleHQuVGV4dCA9ICJMb3N0SHViIgogICAgdGV4dC5UZXh0Q29sb3IzID0gQ29sb3IzLmZyb21SR0IoMjU1LCAyNTUsIDI1NSkKICAgIHRleHQuRm9udCA9IEVudW0uRm9udC5Vbmtub3duCiAgICB0ZXh0LlRleHRTaXplID0gMQogICAgdGV4dC5UZXh0VHJhbnNwYXJlbmN5ID0gMQogICAgdGV4dC5UZXh0VHJhbnNwYXJlbmN5ID0gMAogICAgVHdlZW5TZXJ2aWNlOkNyZWF0ZSh0ZXh0LCBUd2VlbkluZm8ubmV3KDEuNSwgRW51bS5FYXNpbmdTdHlsZS5RdWludCksIHtUZXh0U2l6ZSA9IDgwfSk6UGxheSgpCiAgICB0YXNrLndhaXQoMikKICAgIFR3ZWVuU2VydmljZTpDcmVhdGUoYmx1ciwgVHdlZW5JbmZvLm5ldygxLCBFbnVtLkVhc2luZ1N0eWxlLlF1aW50KSwge1NpemUgPSAwfSk6UGxheSgpCiAgICBUd2VlblNlcnZpY2U6Q3JlYXRlKHRleHQsIFR3ZWVuSW5mby5uZXcoMSwgRW51bS5FYXNpbmdTdHlsZS5RdWludCksIHtUZXh0VHJhbnNwYXJlbmN5ID0gMSwgVGV4dFNpemUgPSAxMTB9KTpQbGF5KCkKICAgIHRhc2sud2FpdCgxKQogICAgYmx1cjpEZXN0cm95KCkKICAgIHNjcmVlbkd1aTpEZXN0cm95KCkKZW5kClBsYXlDbGVhbkludHJvKCkKCi0tIFtbINCm0JXQm0Ci0tIFtbINCb0J7Qk9CY0JrQkCDQmCDQndCQ0KHQotCg0J7QmdCa0JggXV0KbG9jYWwgQ29uZmlnID0ge0FpbWJvdCA9IGZhbHNlLCBXYWxsQ2hlY2sgPSBmYWxzZSwgVGFyZ2V0UGFydCA9ICJIZWFkIiwgRk9WID0gMTUwLCBTaG93Rk9WID0gZmFsc2UsIENoYW1zID0gZmFsc2V9CmxvY2FsIEZPVkNpcmNsZSA9IERyYXdpbmcubmV3KCJDaXJjbGUiKQpGT1ZDSXJjbGUuVGhpY2tuZXNzID0gMQpGT1ZDSXJjbGUuQ29sb3IgPSBDb25maWcuQWltYm90IGFuZCBDb2xvcjMuZnJvbVJHQigyNTUsIDI1NSwgMjU1KSBvciBDb2xvcjMuZnJvbVJHQigyNTUsIDI1NSwgMjU1KQpGT1ZDSXJjbGUuVHJhbnNwYXJlbmN5ID0gMC44CmxvY2FsIGZ1bmN0aW9uIElzVmlzaWJsZShwYXJ0KQogICAgaWYgbm30gQ29uZmlnLldhbGxDaGVjayB0aGVuIHJldHVybiB0cnVlIGVuZAogICAgbG9jYWwgcGFyYW1zID0gUmF5Y2FzdFBhcmFtcy5uZXcoKQogICAgcGFyYW1zLkZpbHRlclR5cGUgPSBFbnVtLlJheWNhc3RGaWx0ZXJUeXBlLkV4Y2x1ZGUKICAgIHBhcmFtcy5GaWx0ZXJEZXNjZW5kYW50c0luc3RhbmNlcyA9IHtscC5DaGFyYWN0ZXIsIGNhbWVyYX0KICAgIGxvY2FsIHJheSA9IHdvcmtzcGFjZTpSYXljYXN0KGNhbWVyYS5DRnJhbWUuUG9zaXRpb24sIChwYXJ0LlBvc2l0aW9uIC0gY2FtZXJhLkNGcmFtZS5Qb3NpdGlvbikuVW5pdCAqIDEwMDAsIHBhcmFtcykKICAgIHJldHVybiByYXkgYW5kIHJheS5JbnN0YW5jZTpJc0Rlc2NlbmRhbnRPZihwYXJ0LlBhcmVudCkgCmVuZApsb2NhbCBmdW5jdGlvbiBHZXRDbG9zZXN0VGFyZ2V0KCkKICAgIGxvY2FsIGNsb3Nlc3REaXN0ID0gQ29uZmlnLkZPVgogICAgbG9jYWwgdGFyZ2V0ID0gbmlsCiAgICBsb2NhbCBtb3VzZUxvY2F0aW9uID0gVXNlcklucHV0U2VydmljZTpHZXRNb3VzZUxvY2F0aW9uKCkKICAgIGZvciBfLCBwbGF5ZXIgaW4gcGFpcnMoUGxheWVyczpHZXRQbGF5ZXJzKCkpIGRvCiAgICAgICAgaWYgcGxheWVyIH49IGxwIGFuZCBwbGF5ZXIuQ2hhcmFjdGVyIGFuZCBwbGF5ZXIuQ2hhcmFjdGVyOkZpbmRGaXJzdENoaWxkKENvbmZpZy5UYXJnZXRQYXJ0KSB0aGVuCiAgICAgICAgICAgIGxvY2FsIHBhcnQgPSBwbGF5ZXIuQ2hhcmFjdGVyW0NvbmZpZy5UYXJnZXRQYXJ0XQogICAgICAgICAgICBsb2NhbCBwb3MsIG9uU2NyZWVuID0gY2FtZXJhOldvcmxkVG9WaWV3cG9ydFBvaW50KHBhcnQuUG9zaXRpb24pCiAgICAgICAgICAgIGlmIG9uU2NyZWVuIGFuZCBJc1Zpc2libGUocGFydCkgdGhlbgogICAgICAgICAgICAgICAgbG9jYWwgZGlzdCA9IChWZWN0b3IyLm5ldyhtb3VzZUxvY2F0aW9uLlgsIG1vdXNlTG9jYXRpb24uWSkgLSBWZWN0b3IyLm5ldyhwb3MuWCwgcG9zLlkpKS5NYWduaXR1ZGUKICAgICAgICAgICAgICAgIGlmIGRpc3QgPCBjbG9zZXN0RGlzdCB0aGVuCiAgICAgICAgICAgICAgICAgICAgY2xvc2VzdERpc3QgPSBkaXN0CiAgICAgICAgICAgICAgICAgICAgdGFyZ2V0ID0gcGFydAogICAgICAgICAgICAgICAgZW5kCiAgICAgICAgICAgIGVuZAogICAgICAgIGVuZAogICAgZW5kCiAgICByZXR1cm4gdGFyZ2V0CmVuZApSdW5TZXJ2aWNlLlJlbmRlclN0ZXBwZWQ6Q29ubmVjdChmdW5jdGlvbigpCiAgICBsb2NhbCBtb3VzZUxvY2F0aW9uID0gVXNlcklucHV0U2VydmljZTpHZXRNb3VzZUxvY2F0aW9uKCkKICAgIEZPVkNpcmNsZS5WaXNpYmxlID0gQ29uZmlnLlNob3dGT1YKICAgIEZPVkNpcmNsZS5SYWRpdXMgPSBDb25maWcuRk9WCiAgICBGT1ZDSXJjbGUuUG9zaXRpb24gPSBtb3VzZUxvY2F0aW9uCiAgICBpZiBDb25maWcuQWltYm90IHRoZW4KICAgICAgICBsb2NhbCB0YXJnZXQgPSBHZXRDbG9zZXN0VGFyZ2V0KCkKICAgICAgICBpZiB0YXJnZXQgdGhlbiBjYW1lcmEuQ0ZyYW1lID0gQ0ZyYW1lLm5ldyhjYW1lcmEuQ0ZyYW1lLlBvc2l0aW9uLCB0YXJnZXQuUG9zaXRpb24pIGVuZAogICAgZW5kCmVuZCkKbG9jYWwgZnVuY3Rpb24gQXBwbHlDaGFtcyhwbGF5ZXIpCiAgICBsb2NhbCBmdW5jdGlvbiBVcGRhdGUoKQogICAgICAgIGlmIHBsYXllci5DaGFyYWN0ZXIgdGhlbgogICAgICAgICAgICBsb2NhbCBoaWdobGlnaHQgPSBwbGF5ZXIuQ2hhcmFjdGVyOkZpbmRGaXJzdENoaWxkKCZMb3N0SGlnaGxpZ2h0JnBsdXM7KSBvciBJbnN0YW5jZS5uZXcoJkhpZ2hsaWdodCZwbHVzOywgcGxheWVyLkNoYXJhY3RlcikKICAgICAgICAgICAgaGlnaGxpZ2h0Lk5hbWUgPSAmTG9zdEhpZ2hsaWdodCZwbHVzOwogICAgICAgICAgICBoaWdobGlnaHQuRW5hYmxlZCA9IENvbmZpZy5DaGFtcwogICAgICAgICAgICBoaWdobGlnaHQuRmlsbENvbG9yID0gQ29sb3IzLmZyb21SR0IoMjU1LCAwLCAwKQogICAgICAgICAgICBoaWdobGlnaHQuT3V0bGluZUNvbG9y
